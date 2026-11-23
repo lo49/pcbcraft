@@ -150,6 +150,12 @@ const IN_BROWSER: bool = cfg!(target_arch = "wasm32");
 
 /// The Help rows, in SolidCraft's order. Returns the row picked this frame.
 /// Connect AI assistants is desktop only: the browser can't host a local connection.
+/// Escape a file path for the status bar's fixed UI font: non-ASCII characters become `?` so an
+/// otherwise valid Unicode path cannot make the label fail to rasterise. Kept local to display.
+fn status_path(path: &str) -> String {
+    path.chars().map(|c| if c.is_ascii() { c } else { '?' }).collect()
+}
+
 fn help_menu(ui: &mut Ui) -> Option<Help> {
     let mut pick = None;
     if MenuItem::new("About PCBCraft").icon(MenuIcon::Help).show(ui) {
@@ -1383,6 +1389,15 @@ impl PcbApp {
     /// A mirrored board keeps its orientation label alongside action hints and errors.
     fn status(&mut self, ui: &mut Ui) {
         let name = self.session.project().map_or("No project open", |p| p.name.as_str()).to_owned();
+        // Show which local copy is open, so two folders/archives of the same project can be told
+        // apart without leaving the editor. Read-only: this never derives document identity.
+        // The status bar uses a fixed UI font without CJK glyphs; escape anything outside ASCII
+        // so a path such as `電路.pc` cannot make the label fail to rasterise. The full path is
+        // still kept by `ProjectFiles::location` for logic and tests.
+        #[cfg(not(target_arch = "wasm32"))]
+        let location = self.files.location(&self.session).map(|path| status_path(&path));
+        #[cfg(target_arch = "wasm32")]
+        let location: Option<String> = None;
         let message = self.message.clone();
         let cancelable = if matches!(self.dialog, Dialog::None) && !self.home && self.views.active.workspace == Workspace::Board {
             self.cancelable_pour()
@@ -1441,6 +1456,9 @@ impl PcbApp {
             ui,
             |ui| {
                 ui.label(dim(name));
+                if let Some(location) = &location {
+                    ui.label(dim(format!(" · {location}")));
+                }
                 if !self.home
                     && self.views.active.workspace == Workspace::Board
                     && self.views.active.board.target.is_some()

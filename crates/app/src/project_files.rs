@@ -177,6 +177,14 @@ pub(super) enum Update {
 }
 
 impl ProjectFiles {
+    /// The read-only folder/archive path of the open project, for display only. `None` for an
+    /// untitled project or when the current snapshot is not the one adopted by the last open/save.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(super) fn location(&self, session: &Session) -> Option<String> {
+        let saved = self.saved.as_ref().filter(|saved| session.project().is_some_and(|project| saved.snapshot.same_document(project)))?;
+        Some(saved.target.path().display().to_string())
+    }
+
     /// Supply a local-copy discriminator only after a project has a successfully adopted file.
     pub(super) fn arrangement_location(&self, session: &Session) -> Option<String> {
         let saved = self.saved.as_ref().filter(|saved| session.project().is_some_and(|project| saved.snapshot.same_document(project)))?;

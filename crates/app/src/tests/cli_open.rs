@@ -224,3 +224,36 @@ fn symlinked_folder_and_archive_startup_targets_open() {
         assert_eq!(h.state().files.recent.entries()[0].path, target, "history records the resolved target");
     }
 }
+
+/// The editor can name the location of the open copy, so two folders of the same project are
+/// distinguishable. Untitled projects have no location; a stale snapshot does not claim one.
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn an_open_project_reports_its_location_for_display() {
+    let (_copy, project_json) = dual_led_copy();
+    let root = project_json.parent().unwrap().to_owned();
+    let mut h = Harness::builder().with_size(egui::vec2(1000.0, 700.0)).build_eframe(|cc| PcbApp::new(cc).with_startup_project(root.clone()));
+    h.run();
+    finish_file(&mut h);
+    assert_eq!(h.state().session.project().unwrap().name, "Dual LED · transistor flasher");
+    {
+        let state = h.state();
+        assert_eq!(state.files.location(&state.session).as_deref(), Some(root.to_str().unwrap()));
+        assert!(state.files.has_location(&state.session));
+        assert!(state.files.arrangement_location(&state.session).is_some());
+    }
+
+    // A new, unsaved project has no file location even though a project is open.
+    h.state_mut().session.apply("project.new", &serde_json::json!({})).unwrap();
+    let state = h.state();
+    assert_eq!(state.files.location(&state.session), None);
+    assert!(!state.files.has_location(&state.session));
+}
+
+/// The status bar escapes non-ASCII path characters so a CJK path cannot fail to rasterise in the
+/// fixed UI font, while the recorded location itself stays untouched.
+#[test]
+fn a_unicode_path_is_escaped_only_for_status_display() {
+    assert_eq!(super::status_path("/tmp/電路/board.pc"), "/tmp/??/board.pc");
+    assert_eq!(super::status_path("/tmp/plain/board.pc"), "/tmp/plain/board.pc");
+}
