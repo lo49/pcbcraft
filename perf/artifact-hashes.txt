@@ -1,0 +1,3 @@
+c4bca6d6f154ce5239d0ffea226d1b9cebabba6973eee75c81e009f9911f86e1  bus64-schematic.pc
+74ecdeb416d35d5444a1417c1d13e5b2649470dcdef66fe6079e1f1702089e3c  /home/sotchi/pcbcraft-bench-main/target/release/examples/schematic_pan_drag
+5d4f42810781f0b1809894d8fccd606eb25dee213532d342f5ed9624aef0efa1  /home/sotchi/pcbcraft-bench-pr/target/release/examples/schematic_pan_drag
